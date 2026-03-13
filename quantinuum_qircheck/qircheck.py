@@ -234,10 +234,6 @@ def validate_qir_base(qir_prog: pq.Module) -> None:
     line_num = 1
     i1_env: dict[str, pq.Call] = {}
 
-    # print(dir(main_fun))
-    # print(main_fun.attributes)
-    # print(dir(main_fun.attributes))
-
     for block in main_fun.basic_blocks:
         for instr in block.instructions:
             if instr.opcode == pq.Opcode.BR:
@@ -350,7 +346,6 @@ def is_valid_record_call(instr: pq.Call) -> bool:
         if name in list_of_creg_names:
             return False
         list_of_creg_names.append(name)
-        list_of_creg_names.append(instr.operands[1])
 
     # for real support we should check an annotation instead of checking the name
     return instr.callee.name in record_instr_set_all
