@@ -31,6 +31,7 @@ def test_check_qir_fileset() -> None:
 def test_check_qir_invalid_fileset() -> None:
     for file in listdir("qir/invalid"):
         with open(f"qir/invalid/{file}") as f:
+            print(file)
             qir_str = f.read()
 
             with pytest.raises(ValueError) as e:

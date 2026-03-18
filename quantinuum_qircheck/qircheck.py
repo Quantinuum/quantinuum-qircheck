@@ -183,6 +183,7 @@ def is_classical_op(instr: pq.Instruction) -> bool:
         pq.Opcode.ICMP,
         pq.Opcode.FCMP,
         pq.Opcode.ZEXT,
+        pq.Opcode.TRUNC,
         # pq.Opcode.SELECT # moved to: is select
     ]
     return isinstance(instr, pq.Instruction) and instr.opcode in op_opcodes
