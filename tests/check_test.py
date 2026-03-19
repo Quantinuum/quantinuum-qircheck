@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-import Path
+from pathlib import Path
+
 import pytest
 
 import quantinuum_qircheck as qc
@@ -23,15 +24,16 @@ def test_check_qir_fileset() -> None:
     path = Path(__file__).parent / "qir/valid"
     files = list(path.glob("*.ll"))
     for file in files:
-        with open(f"qir/valid/{file}") as f:
+        with open(file) as f:
             qir_str = f.read()
             qc.qircheck(qir_str)
 
+
 def test_check_qir_invalid_fileset() -> None:
-    path = Path(__file__).parent / "qir/valid"
+    path = Path(__file__).parent / "qir/invalid"
     files = list(path.glob("*.ll"))
     for file in files:
-        with open(f"qir/invalid/{file}") as f:
+        with open(file) as f:
             qir_str = f.read()
 
             with pytest.raises(ValueError) as e:
