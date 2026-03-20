@@ -21,6 +21,8 @@ from typing import Callable
 
 import pyqir as pq
 
+list_of_creg_names: list[str] = []
+
 
 class _cycle_check:
     # checks for cycles in the CFG
@@ -83,11 +85,21 @@ def is_group(gate_name: str) -> bool:
 
 
 def is_phi(instr: pq.Instruction) -> bool:
+    if isinstance(instr, pq.Phi):
+        for op in instr.operands:
+            if "builtins.PointerType" in str(op.type):
+                return False
+
     return isinstance(instr, pq.Phi)
 
 
 def is_select(instr: pq.Instruction) -> bool:
-    return isinstance(instr, pq.Call) and instr.opcode == pq.Opcode.SELECT
+    if instr.opcode == pq.Opcode.SELECT:
+        for op in instr.operands:
+            if "builtins.PointerType" in str(op.type):
+                return False
+
+    return instr.opcode == pq.Opcode.SELECT
 
 
 def is_wasm_call_instr(instr: pq.Instruction, functions: list[pq.Function]) -> bool:
@@ -171,7 +183,8 @@ def is_classical_op(instr: pq.Instruction) -> bool:
         pq.Opcode.ICMP,
         pq.Opcode.FCMP,
         pq.Opcode.ZEXT,
-        pq.Opcode.SELECT,
+        pq.Opcode.TRUNC,
+        # pq.Opcode.SELECT # moved to: is select
     ]
     return isinstance(instr, pq.Instruction) and instr.opcode in op_opcodes
 
@@ -187,6 +200,9 @@ def validate_qir_base(qir_prog: pq.Module) -> None:
     """Validate that the QIR corresponds to a valid quantinuum profile
     program that we can support, allowing pytket creg functions.
     This will return none and raises a ValidationError in case of issues"""
+
+    global list_of_creg_names
+    list_of_creg_names = []
 
     def _is_valid_call_help(instr: pq.Instruction) -> bool:
         return is_valid_call(instr, qir_prog.functions)
@@ -289,15 +305,6 @@ def is_valid_quantum_call(instr: pq.Call) -> bool:
 def is_valid_classical_call(instr: pq.Call) -> bool:
     """Determines whether a gate application has a valid form"""
     classical_instr_set = {
-        "__quantum__rt__int_record_output",
-        "__quantum__rt__result_record_output",
-        "__quantum__rt__bool_record_output",
-        "__quantum__rt__tuple_start_record_output",
-        "__quantum__rt__tuple_end_record_output",
-        "__quantum__rt__array_start_record_output",
-        "__quantum__rt__array_end_record_output",
-        "__quantum__rt__tuple_record_output",
-        "__quantum__rt__array_record_output",
         "___get_current_shot",
         "___set_random_index",
         "___random_int",
@@ -308,12 +315,50 @@ def is_valid_classical_call(instr: pq.Call) -> bool:
     return instr.callee.name in classical_instr_set
 
 
+def is_valid_record_call(instr: pq.Call) -> bool:
+    """Determines whether a gate application has a valid form"""
+
+    global list_of_creg_names
+
+    record_instr_set_name = {
+        "__quantum__rt__int_record_output",
+        "__quantum__rt__result_record_output",
+        "__quantum__rt__bool_record_output",
+    }
+
+    record_instr_set_all = {
+        "__quantum__rt__tuple_start_record_output",
+        "__quantum__rt__tuple_end_record_output",
+        "__quantum__rt__array_start_record_output",
+        "__quantum__rt__array_end_record_output",
+        "__quantum__rt__tuple_record_output",
+        "__quantum__rt__array_record_output",
+    }
+
+    record_instr_set_all.update(record_instr_set_name)
+
+    if instr.callee.name in record_instr_set_name:
+        name = ""
+        try:
+            name = instr.operands[1].__str__().split("=")[1]
+        except:  # noqa: E722
+            return False
+
+        if name in list_of_creg_names:
+            return False
+        list_of_creg_names.append(name)
+
+    # for real support we should check an annotation instead of checking the name
+    return instr.callee.name in record_instr_set_all
+
+
 def is_valid_call(instr: pq.Instruction, functions: list[pq.Function]) -> bool:
     """Determines whether the qir call instruction was valid"""
     return isinstance(instr, pq.Call) and any(
         (
             is_valid_quantum_call(instr),
             is_valid_classical_call(instr),
+            is_valid_record_call(instr),
             is_valid_result_equal_instr(instr),
             is_result_get_one(instr),
             is_result_get_zero(instr),
