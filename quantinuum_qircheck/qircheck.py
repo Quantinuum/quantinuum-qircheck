@@ -263,7 +263,6 @@ def is_valid_quantum_call(instr: pq.Call) -> bool:
         "__quantum__qis__h__body",
         "__quantum__qis__y__body",
         "__quantum__qis__anynonzero__body",
-        "__quantum__qis__read_result__body",
         "__quantum__qis__cnot__body",
         "__quantum__qis__cz__body",
         "__quantum__qis__x__body",
@@ -303,8 +302,11 @@ def is_valid_quantum_call(instr: pq.Call) -> bool:
 
 
 def is_valid_classical_call(instr: pq.Call) -> bool:
-    """Determines whether a gate application has a valid form"""
+    """Determines whether a classical QIR function call has a valid form"""
     classical_instr_set = {
+        "__quantum__rt__read_result",
+        "__quantum__qis__read_result__body",  # legacy name of the above
+        "__quantum__rt__initialize",
         "___get_current_shot",
         "___set_random_index",
         "___random_int",
