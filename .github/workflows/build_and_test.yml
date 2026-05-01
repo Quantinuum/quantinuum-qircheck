@@ -69,7 +69,7 @@ jobs:
       run: |
         ./.github/workflows/build-test nomypy
     - uses: actions/upload-artifact@v7
-      if: github.event_name == 'release' || contains(github.ref, 'refs/heads/wheel')
+      if: (github.event_name == 'release' || contains(github.ref, 'refs/heads/wheel')) && matrix.os == 'ubuntu-latest'
       with:
         name: artefact-${{ matrix.os }}
         path: wheelhouse/
