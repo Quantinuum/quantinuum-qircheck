@@ -69,7 +69,7 @@ jobs:
       run: |
         ./.github/workflows/build-test nomypy
     - uses: actions/upload-artifact@v7
-      if: github.event_name == 'release' || contains(github.ref, 'refs/heads/wheel')
+      if: (github.event_name == 'release' || contains(github.ref, 'refs/heads/wheel')) && matrix.os == 'ubuntu-latest'
       with:
         name: artefact-${{ matrix.os }}
         path: wheelhouse/
@@ -81,22 +81,20 @@ jobs:
     needs: qir-checks
     runs-on: ubuntu-latest
     steps:
-    - name: Download all wheels
-      # downloading all three files into the wheelhouse
-      # all files are identical, so there will only be one file
+    - name: Download release wheel
+      # This is currently a pure Python wheel, so publish the Ubuntu artifact
+      # instead of merging same-named matrix outputs.
       uses: actions/download-artifact@v8
       with:
         path: wheelhouse
-        pattern: artefact-*
-        merge-multiple: true
-    - name: Put them all in the dist folder
+        name: artefact-ubuntu-latest
+    - name: Put wheel in the dist folder
       run: |
         mkdir dist
-        for w in `find wheelhouse/ -type f -name "*.whl"` ; do cp $w dist/ ; done
+        cp wheelhouse/*.whl dist/
     - name: Publish wheels
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_QIRCHECK_API_TOKEN }}
         verbose: true
-
