@@ -1,3 +1,4 @@
+; Error: Duplicate record output calls are not allowed. In this case, the same module global is used twice.
 ; ModuleID = 'test_bitreg_as_bit_1'
 source_filename = "test_bitreg_as_bit_1"
 

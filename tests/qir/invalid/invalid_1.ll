@@ -1,3 +1,4 @@
+; Error: Attempts to call function '@__quantum__Qqis__h__body', which is not defined (typo of `__quantum__qis__h__body`)
 ; ModuleID = 'test_pytket_qir'
 source_filename = "test_pytket_qir"
 

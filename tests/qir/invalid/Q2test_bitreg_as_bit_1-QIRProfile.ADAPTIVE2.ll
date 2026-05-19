@@ -1,3 +1,4 @@
+; Error: Duplicate record output calls are not allowed. In this case, the output names are duplicated, causing the error.
 ; ModuleID = 'test_bitreg_as_bit_1'
 source_filename = "test_bitreg_as_bit_1"
 
