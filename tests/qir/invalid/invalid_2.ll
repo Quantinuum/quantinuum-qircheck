@@ -1,3 +1,4 @@
+; Error: Contains a loop, which is unsupported. Block cond_104_case_0 can branch backwards to block cond_exit_176.
 ; ModuleID = 'hugr-qir'
 source_filename = "hugr-qir"
 target datalayout = "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128"
