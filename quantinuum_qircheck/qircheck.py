@@ -16,10 +16,15 @@
 check for QIR module if it is compatible with quantinuum devices
 """
 
+from __future__ import annotations
+
 import re
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import pyqir as pq
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 list_of_creg_names: list[str] = []
 
@@ -50,9 +55,7 @@ class _cycle_check:
             if instr.opcode == pq.Opcode.BR or instr.opcode == pq.Opcode.INDIRECT_BR:
                 for x in instr.successors:
                     if x in self.current_blocks:
-                        raise ValueError(
-                            f"Found loop in CFG containing the block: {x.name}"
-                        )
+                        raise ValueError(f"Found loop in CFG containing the block: {x.name}")
 
                     if x not in self.visited_blocks:
                         self.check_for_cycles(x)
@@ -208,24 +211,16 @@ def validate_qir_base(qir_prog: pq.Module) -> None:
         return is_valid_call(instr, qir_prog.functions)
 
     if not isinstance(qir_prog.functions, list):
-        raise ValueError(
-            "Expected the QIR file to have at least one function but none was found"
-        )
+        raise ValueError("Expected the QIR file to have at least one function but none was found")
     main_fun = next(filter(pq.is_entry_point, qir_prog.functions), None)
     if not main_fun:
-        raise ValueError(
-            "Expected the QIR file to have an entrypoint function but none was found"
-        )
+        raise ValueError("Expected the QIR file to have an entrypoint function but none was found")
     num_qubits = pq.required_num_qubits(main_fun)
     if not isinstance(num_qubits, int):
-        raise ValueError(
-            "Expected the QIR file to have qubit count specified but no annotation was found"
-        )
+        raise ValueError("Expected the QIR file to have qubit count specified but no annotation was found")
     num_results = pq.required_num_results(main_fun)
     if not isinstance(num_results, int):
-        raise ValueError(
-            "Expected the QIR file to have measurement result count specified but no annotation was found"
-        )
+        raise ValueError("Expected the QIR file to have measurement result count specified but no annotation was found")
 
     # check for loops in CFG:
 
@@ -296,9 +291,7 @@ def is_valid_quantum_call(instr: pq.Call) -> bool:
     special_gate_funs = [is_barrier, is_order, is_group]
     if isinstance(instr, pq.Call):
         fun_name = instr.callee.name
-        return (fun_name in quantum_instr_set) or any(
-            fun(fun_name) for fun in special_gate_funs
-        )
+        return (fun_name in quantum_instr_set) or any(fun(fun_name) for fun in special_gate_funs)
 
 
 def is_valid_classical_call(instr: pq.Call) -> bool:
@@ -374,11 +367,7 @@ def is_ret_instr(instr: pq.Instruction) -> bool:
 
 
 def is_jump_instr(instr: pq.Instruction) -> bool:
-    return (
-        isinstance(instr, pq.Instruction)
-        and instr.opcode == pq.Opcode.BR
-        and len(instr.operands) == 1
-    )
+    return isinstance(instr, pq.Instruction) and instr.opcode == pq.Opcode.BR and len(instr.operands) == 1
 
 
 def is_valid_read_result_instr(instr: pq.Instruction) -> bool:

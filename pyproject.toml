@@ -22,7 +22,8 @@ name = "quantinuum_qircheck"
 description = "Package to check QIR for compatibility with quantinuum devices"
 readme = "README.md"
 requires-python = ">=3.10, <3.13"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{ name = "Quantinuum" }]
 maintainers = [
   { name = "TKET development team", email = "tket-support@quantinuum.com" },
@@ -33,7 +34,6 @@ classifiers = [
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
-        "License :: OSI Approved :: Apache Software License",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
         "Operating System :: Microsoft :: Windows",
@@ -46,9 +46,6 @@ dependencies = [
   "pyqir ~= 0.12.3",
 ]
 
-[project.optional-dependencies]
-test = ["pytest"]
-
 [project.urls]
 Repository = "https://github.com/CQCL/quantinuum-qircheck"
 Tracker = "https://github.com/CQCL/quantinuum-qircheck/issues"
@@ -60,7 +57,8 @@ where = ["."]
 "quantinuum_qircheck" = ["py.typed"]
 
 [tool.pytest.ini_options]
-addopts = "-s -vv"
+addopts = "-ra --cov=quantinuum_qircheck --cov-report=term-missing"
+testpaths = ["tests"]
 pythonpath = ["."]
 log_cli = true
 log_cli_level = "INFO"
@@ -68,8 +66,29 @@ log_level = "DEBUG"
 log_format = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s:%(lineno)s %(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
 
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.environment]
+python-version = "3.10"
+
 [tool.setuptools_scm]
 version_scheme = "python-simplified-semver"
 
 [tool.refurb]
 python_version = "3.12"
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+]
+lint = [
+    "refurb>=2.3.1",
+    "ruff>=0.15.13",
+    "ty>=0.0.38",
+]
+test = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
