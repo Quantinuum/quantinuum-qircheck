@@ -1,21 +1,23 @@
 .PHONY: build tests install clean dev lint
 
-all: install tests build
+all: dev tests build
 
 install:
-	pip install .
+	uv sync
 
 dev:
-	pip install -e .
+	uv sync --group dev
 
 lint:
-	pre-commit run --all-files
+	uv run ruff format --check .
+	uv run ruff check .
+	uv run ty check quantinuum_qircheck tests
 
 tests:
-	cd tests && pytest -x -v && cd -
+	uv run pytest
 
 build:
-	python -m build --sdist --wheel -n
+	uv build
 
 clean:
-	rm -rf dist build *.egg-info
+	rm -rf .coverage .pytest_cache .ruff_cache build dist htmlcov wheelhouse *.egg-info

@@ -12,22 +12,21 @@ on:
 
 jobs:
   lint:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v6
-    - name: Set up Python 3.x
+    - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.x'
-    - name: Update pip
-      run: pip install --upgrade pip
-    - name: Install formatters and linters
-      run: pip install black ruff
-    - name: Check files are formatted with black
-      run: |
-        black --check .
-    - name: Run ruff
-      run: |
-        ruff check .
+        python-version: '3.12'
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v8.1.0
+    - name: Install lint dependencies
+      run: uv sync --group lint --group test
+    - name: Check formatting
+      run: uv run ruff format --check .
+    - name: Run Ruff
+      run: uv run ruff check .
+    - name: Run Ty
+      run: uv run ty check quantinuum_qircheck tests

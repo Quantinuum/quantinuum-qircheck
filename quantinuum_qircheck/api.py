@@ -16,14 +16,12 @@
 check for QIR module if it is compatible with quantinuum devices
 """
 
-from typing import Union
-
 import pyqir
 
 from .qircheck import validate_qir_base
 
 
-def qircheck(qir: Union[str, bytes, pyqir.Module]) -> None:
+def qircheck(qir: str | bytes | pyqir.Module) -> None:
     """
     check qir if it is valid
     Allowed types are: str, bytes and pyqir.module
@@ -36,12 +34,8 @@ def qircheck(qir: Union[str, bytes, pyqir.Module]) -> None:
     elif isinstance(qir, pyqir.Module):
         module = qir
     else:
-        raise ValueError(
-            f"unexpected types. Expected str, bytes or pyqir.module. got : {type(qir)}"
-        )
+        raise ValueError(f"unexpected types. Expected str, bytes or pyqir.module. got : {type(qir)}")
 
     assert module.verify() is None
 
     validate_qir_base(module)
-
-    return None

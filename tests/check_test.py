@@ -24,26 +24,21 @@ def test_check_qir_fileset() -> None:
     path = Path(__file__).parent / "qir/valid"
     files = list(path.glob("*.ll"))
     for file in files:
-        with open(file) as f:
-            qir_str = f.read()
-            qc.qircheck(qir_str)
+        qc.qircheck(file.read_text(encoding="utf-8"))
 
 
 def test_check_qir_invalid_fileset() -> None:
     path = Path(__file__).parent / "qir/invalid"
     files = list(path.glob("*.ll"))
     for file in files:
-        with open(file) as f:
-            qir_str = f.read()
+        with pytest.raises(ValueError) as exc_info:
+            qc.qircheck(file.read_text(encoding="utf-8"))
 
-            with pytest.raises(ValueError) as e:
-                qc.qircheck(qir_str)
+        if file.name == "invalid_1.ll":
+            assert "Qqis" in str(exc_info)
 
-            if file.name == "invalid_1.ll":
-                assert "Qqis" in str(e)
-
-            if file.name == "invalid_2.ll":
-                assert "Found loop in CFG" in str(e)
+        if file.name == "invalid_2.ll":
+            assert "Found loop in CFG" in str(exc_info)
 
 
 def test_unknown_runtime_call_is_rejected() -> None:

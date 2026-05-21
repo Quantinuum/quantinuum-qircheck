@@ -7,6 +7,9 @@ dist
 .vscode
 .mypy_cache
 .hypothesis
+.coverage
+coverage.xml
+htmlcov/
 obj
 docs/extensions
 .ipynb_checkpoints
