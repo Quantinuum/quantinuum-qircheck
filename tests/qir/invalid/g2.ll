@@ -1,3 +1,4 @@
+; Error:  Unsupported Instruction  '%.mux = select i1 %Pivot10918, ptr inttoptr (i64 5 to ptr), ptr inttoptr (i64 6 to ptr)'. Qubit* SSA vars are not supported.
 ; ModuleID = 'hugr-qir'
 source_filename = "hugr-qir"
 target datalayout = "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128"
