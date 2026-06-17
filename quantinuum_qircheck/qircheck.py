@@ -19,6 +19,7 @@ check for QIR module if it is compatible with quantinuum devices
 from __future__ import annotations
 
 import re
+import sys
 from typing import TYPE_CHECKING
 
 import pyqir as pq
@@ -40,6 +41,8 @@ class _cycle_check:
         # black nodes/blocks
         # marks all blocks that have been traversed
         self.visited_blocks: set[pq.BasicBlock] = set()
+        if sys.getrecursionlimit() <= 1000:
+            sys.setrecursionlimit(10**6)
 
     def check_for_cycles(self, block: pq.BasicBlock) -> None:
         # checks if the given block is part of a cycle in the CFG
@@ -186,6 +189,7 @@ def is_classical_op(instr: pq.Instruction) -> bool:
         pq.Opcode.ICMP,
         pq.Opcode.FCMP,
         pq.Opcode.ZEXT,
+        pq.Opcode.SEXT,
         pq.Opcode.TRUNC,
         # pq.Opcode.SELECT # moved to: is select
     ]
