@@ -19,7 +19,6 @@ check for QIR module if it is compatible with quantinuum devices
 from __future__ import annotations
 
 import re
-import sys
 from typing import TYPE_CHECKING
 
 import pyqir as pq
@@ -31,40 +30,72 @@ list_of_creg_names: list[str] = []
 
 
 class _cycle_check:
-    # checks for cycles in the CFG
-
     def __init__(self) -> None:
-        # gray nodes/blocks
-        # marks all blocks that are currently traversed
         self.current_blocks: set[pq.BasicBlock] = set()
-
-        # black nodes/blocks
-        # marks all blocks that have been traversed
         self.visited_blocks: set[pq.BasicBlock] = set()
-        if sys.getrecursionlimit() <= 1000:
-            sys.setrecursionlimit(10**6)
 
-    def check_for_cycles(self, block: pq.BasicBlock) -> None:
-        # checks if the given block is part of a cycle in the CFG
-        # this implements a DFS search and it fails when a back edge is found
-        # the current state of the search is depended on the nodes / blocks already visited,
-        # they are stored in self.current_blocks and self.visited_blocks.
-        # self.current_blocks contains the nodes / blocks which are currently traversed
-        # self.visited_blocks contains the nodes / blocks which have been traversed
+    def check_for_cycles(self, start: pq.BasicBlock) -> None:
+        # Stack entries:
+        # (block, iterator_over_successors, state)
+        # state = 0 -> first time visiting (enter)
+        # state = 1 -> returning (exit)
+        stack: list[tuple[pq.BasicBlock, object, int]] = []
 
-        self.current_blocks.add(block)
-        # loop over all the adjacent blocks
-        for instr in block.instructions:
-            if instr.opcode == pq.Opcode.BR or instr.opcode == pq.Opcode.INDIRECT_BR:
-                for x in instr.successors:
+        # helper to get successors lazily
+        def get_successors(block):
+            for instr in block.instructions:
+                if instr.opcode in (pq.Opcode.BR, pq.Opcode.INDIRECT_BR):
+                    yield from [x for x in instr.successors]
+
+        stack.append((start, None, 0))
+
+        while stack:
+            block, it, state = stack.pop()
+
+            # ENTER phase (equivalent to function entry)
+            if state == 0:
+                if block in self.visited_blocks:
+                    continue
+
+                self.current_blocks.add(block)
+
+                # Prepare iterator over successors
+                it = iter(get_successors(block))
+
+                # Push EXIT frame
+                stack.append((block, it, 1))
+
+                # Process first successor immediately (like recursion)
+                try:
+                    x = next(it)
+                    stack.append((block, it, 2))  # resume loop
+                    stack.append((x, None, 0))  # recurse
+                except StopIteration:
+                    pass
+
+            # LOOP RESUME phase
+            elif state == 2:
+                try:
+                    x = next(it)  # ty:ignore[invalid-argument-type]
+
                     if x in self.current_blocks:
                         raise ValueError(f"Found loop in CFG containing the block: {x.name}")
 
                     if x not in self.visited_blocks:
-                        self.check_for_cycles(x)
+                        stack.append((block, it, 2))  # continue later
+                        stack.append((x, None, 0))  # recurse
+                    else:
+                        stack.append((block, it, 2))  # skip but continue
 
-        self.current_blocks.remove(block)
-        self.visited_blocks.add(block)
+                except StopIteration:
+                    # done with successors → cleanup handled in EXIT
+                    stack.append((block, it, 1))
+
+            # EXIT phase (equivalent to function return)
+            else:  # state == 1
+                if block in self.current_blocks:
+                    self.current_blocks.remove(block)
+                self.visited_blocks.add(block)
 
 
 def qubit_number_regex_builder(gate_name: str, greater_than_1: bool = False) -> str:
