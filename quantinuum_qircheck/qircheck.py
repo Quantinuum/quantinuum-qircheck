@@ -98,6 +98,56 @@ class _cycle_check:
                 self.visited_blocks.add(block)
 
 
+class _cycle_check_new:
+    def __init__(self) -> None:
+        # Blocks on the active DFS path. An edge to one of these is a cycle.
+        self.current_blocks: set[pq.BasicBlock] = set()
+
+        # Blocks whose reachable successors have already been checked.
+        self.visited_blocks: set[pq.BasicBlock] = set()
+
+    @staticmethod
+    def _successors(block: pq.BasicBlock):
+        for instr in block.instructions:
+            if instr.opcode in (pq.Opcode.BR, pq.Opcode.INDIRECT_BR):
+                yield from instr.successors
+
+    def check_for_cycles(self, start: pq.BasicBlock) -> None:
+        # Each block gets an enter frame and an exit frame. The exit frame
+        # removes the block from the active path after its successors are done.
+        stack: list[tuple[pq.BasicBlock, bool]] = [(start, False)]
+
+        while stack:
+            block, is_exit = stack.pop()
+
+            if is_exit:
+                self.current_blocks.remove(block)
+                self.visited_blocks.add(block)
+                continue
+
+            if block in self.visited_blocks:
+                continue
+
+            # Re-entering a block on the active path means the CFG loops back.
+            if block in self.current_blocks:
+                raise ValueError(f"Found loop in CFG containing the block: {block.name}")
+
+            self.current_blocks.add(block)
+            stack.append((block, True))
+
+            unvisited_successors = []
+            for successor in self._successors(block):
+                # Check every edge before descending, including the first
+                # successor. Missing this check can turn self-loops into hangs.
+                if successor in self.current_blocks:
+                    raise ValueError(f"Found loop in CFG containing the block: {successor.name}")
+                if successor not in self.visited_blocks:
+                    unvisited_successors.append(successor)
+
+            # The stack is LIFO, so reverse to process successors in CFG order.
+            stack.extend((successor, False) for successor in reversed(unvisited_successors))
+
+
 def qubit_number_regex_builder(gate_name: str, greater_than_1: bool = False) -> str:
     lower_bound = 2 if greater_than_1 else 1
     return f"__quantum__qis__{gate_name}([{lower_bound}-9]|[1-4][0-9]|[5][0-8])__body"

@@ -15,9 +15,11 @@
 
 from pathlib import Path
 
+import pyqir
 import pytest
 
 import quantinuum_qircheck as qc
+from quantinuum_qircheck.qircheck import _cycle_check_new
 
 
 def test_check_qir_fileset() -> None:
@@ -39,6 +41,36 @@ def test_check_qir_invalid_fileset() -> None:
 
         if file.name == "invalid_2.ll":
             assert "Found loop in CFG" in str(exc_info)
+
+
+def test_new_cycle_check_rejects_first_successor_self_loop() -> None:
+    qir = """
+%Qubit = type opaque
+%Result = type opaque
+
+define void @main() #0 {
+entry:
+  br label %loop
+
+loop:
+  br label %loop
+}
+
+attributes #0 = { "entry_point" "qir_profiles"="base_profile" "required_num_qubits"="0" "required_num_results"="0" }
+
+!llvm.module.flags = !{!0, !1, !2, !3}
+
+!0 = !{i32 1, !"qir_major_version", i32 1}
+!1 = !{i32 7, !"qir_minor_version", i32 0}
+!2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+!3 = !{i32 1, !"dynamic_result_management", i1 false}
+"""
+    module = pyqir.Module.from_ir(pyqir.Context(), qir)
+    assert module.verify() is None
+    main_fun = next(filter(pyqir.is_entry_point, module.functions))
+
+    with pytest.raises(ValueError, match="Found loop in CFG"):
+        _cycle_check_new().check_for_cycles(main_fun.basic_blocks[0])
 
 
 def test_unknown_runtime_call_is_rejected() -> None:
