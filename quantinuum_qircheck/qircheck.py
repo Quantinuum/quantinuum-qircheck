@@ -31,7 +31,7 @@ list_of_creg_names: list[str] = []
 
 class _cycle_check:
     def __init__(self) -> None:
-        # Blocks on the active DFS path. An edge to one of these is a cycle.
+        # Blocks on the active DFS-path. An edge to one of these is a cycle.
         self.current_blocks: set[pq.BasicBlock] = set()
 
         # Blocks whose reachable successors have already been checked.
