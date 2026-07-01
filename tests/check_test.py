@@ -19,7 +19,7 @@ import pyqir
 import pytest
 
 import quantinuum_qircheck as qc
-from quantinuum_qircheck.qircheck import _cycle_check_new
+from quantinuum_qircheck.qircheck import _cycle_check
 
 
 def test_check_qir_fileset() -> None:
@@ -43,7 +43,7 @@ def test_check_qir_invalid_fileset() -> None:
             assert "Found loop in CFG" in str(exc_info)
 
 
-def test_new_cycle_check_rejects_first_successor_self_loop() -> None:
+def test_cycle_check_rejects_first_successor_self_loop() -> None:
     qir = """
 %Qubit = type opaque
 %Result = type opaque
@@ -70,7 +70,7 @@ attributes #0 = { "entry_point" "qir_profiles"="base_profile" "required_num_qubi
     main_fun = next(filter(pyqir.is_entry_point, module.functions))
 
     with pytest.raises(ValueError, match="Found loop in CFG"):
-        _cycle_check_new().check_for_cycles(main_fun.basic_blocks[0])
+        _cycle_check().check_for_cycles(main_fun.basic_blocks[0])
 
 
 def test_unknown_runtime_call_is_rejected() -> None:
