@@ -30,38 +30,53 @@ list_of_creg_names: list[str] = []
 
 
 class _cycle_check:
-    # checks for cycles in the CFG
-
     def __init__(self) -> None:
-        # gray nodes/blocks
-        # marks all blocks that are currently traversed
+        # Blocks on the active DFS-path. An edge to one of these is a cycle.
         self.current_blocks: set[pq.BasicBlock] = set()
 
-        # black nodes/blocks
-        # marks all blocks that have been traversed
+        # Blocks whose reachable successors have already been checked.
         self.visited_blocks: set[pq.BasicBlock] = set()
 
-    def check_for_cycles(self, block: pq.BasicBlock) -> None:
-        # checks if the given block is part of a cycle in the CFG
-        # this implements a DFS search and it fails when a back edge is found
-        # the current state of the search is depended on the nodes / blocks already visited,
-        # they are stored in self.current_blocks and self.visited_blocks.
-        # self.current_blocks contains the nodes / blocks which are currently traversed
-        # self.visited_blocks contains the nodes / blocks which have been traversed
-
-        self.current_blocks.add(block)
-        # loop over all the adjacent blocks
+    @staticmethod
+    def _successors(block: pq.BasicBlock):
         for instr in block.instructions:
-            if instr.opcode == pq.Opcode.BR or instr.opcode == pq.Opcode.INDIRECT_BR:
-                for x in instr.successors:
-                    if x in self.current_blocks:
-                        raise ValueError(f"Found loop in CFG containing the block: {x.name}")
+            if instr.opcode in (pq.Opcode.BR, pq.Opcode.INDIRECT_BR):
+                yield from instr.successors
 
-                    if x not in self.visited_blocks:
-                        self.check_for_cycles(x)
+    def check_for_cycles(self, start: pq.BasicBlock) -> None:
+        # Each block gets an enter frame and an exit frame. The exit frame
+        # removes the block from the active path after its successors are done.
+        stack: list[tuple[pq.BasicBlock, bool]] = [(start, False)]
 
-        self.current_blocks.remove(block)
-        self.visited_blocks.add(block)
+        while stack:
+            block, is_exit = stack.pop()
+
+            if is_exit:
+                self.current_blocks.remove(block)
+                self.visited_blocks.add(block)
+                continue
+
+            if block in self.visited_blocks:
+                continue
+
+            # Re-entering a block on the active path means the CFG loops back.
+            if block in self.current_blocks:
+                raise ValueError(f"Found loop in CFG containing the block: {block.name}")
+
+            self.current_blocks.add(block)
+            stack.append((block, True))
+
+            unvisited_successors = []
+            for successor in self._successors(block):
+                # Check every edge before descending, including the first
+                # successor. Missing this check can turn self-loops into hangs.
+                if successor in self.current_blocks:
+                    raise ValueError(f"Found loop in CFG containing the block: {successor.name}")
+                if successor not in self.visited_blocks:
+                    unvisited_successors.append(successor)
+
+            # The stack is LIFO, so reverse to process successors in CFG order.
+            stack.extend((successor, False) for successor in reversed(unvisited_successors))
 
 
 def qubit_number_regex_builder(gate_name: str, greater_than_1: bool = False) -> str:
@@ -186,6 +201,7 @@ def is_classical_op(instr: pq.Instruction) -> bool:
         pq.Opcode.ICMP,
         pq.Opcode.FCMP,
         pq.Opcode.ZEXT,
+        pq.Opcode.SEXT,
         pq.Opcode.TRUNC,
         # pq.Opcode.SELECT # moved to: is select
     ]
