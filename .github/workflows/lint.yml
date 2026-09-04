@@ -21,7 +21,7 @@ jobs:
       with:
         python-version: '3.12'
     - name: Set up uv
-      uses: astral-sh/setup-uv@v9.0.0
+      uses: astral-sh/setup-uv@v10.0.1
     - name: Install lint dependencies
       run: uv sync --group lint --group test
     - name: Check formatting
